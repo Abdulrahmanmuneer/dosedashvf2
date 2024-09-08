@@ -273,11 +273,14 @@ class _CartScreenState extends State<CartScreen> {
                   groupedOrderItems.values.expand((items) => items).toList(),
               'orderStatus': 'pending',
               'timestamp': FieldValue.serverTimestamp(),
-              'user_lat': userLocation.latitude,
-              'user_lng': userLocation.longitude,
-              'pharmacy_names': pharmacyNames,
-              'pharmacy_addresses': pharmacyAddresses,
-              'nearByRiders': nearbyDeliveryPersons, // Nearby delivery persons
+              'notificationType': 'order',
+              'patient_name':
+                  '${_userData!['firstname']} ${_userData!['lastname']}',
+              'patient_address': '${_userData!['address']}', // User address
+              'pharmacy_name': pharmacyNames, // List of pharmacy names
+              'pharmacy_address':
+                  pharmacyAddresses, // List of pharmacy addresses
+              'totalPrice': _totalPrice, // Add total price here
             });
 
             if (!_isDisposed && mounted) {
