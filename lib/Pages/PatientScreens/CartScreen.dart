@@ -20,7 +20,6 @@ class _CartScreenState extends State<CartScreen> {
   double _totalPrice = 0.0;
   User? _user;
   Map<String, dynamic>? _userData;
-  bool _isDisposed = false; // Track whether the widget is disposed
 
   @override
   void initState() {
@@ -31,8 +30,7 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   void dispose() {
-    // Mark the widget as disposed to avoid calling setState on it
-    _isDisposed = true;
+    // TODO: implement dispose
     super.dispose();
   }
 
@@ -55,18 +53,15 @@ class _CartScreenState extends State<CartScreen> {
             .doc(userId)
             .get();
 
-        if (!_isDisposed && mounted) {
-          // Check if the widget is still mounted and not disposed
-          setState(() {
-            _userData = userDoc.data() as Map<String, dynamic>?;
+        setState(() {
+          _userData = userDoc.data() as Map<String, dynamic>?;
 
-            if (_userData != null) {
-              _userData!['firstname'] ??= '';
-              _userData!['lastname'] ??= '';
-              _userData!['phone'] ??= '';
-            }
-          });
-        }
+          if (_userData != null) {
+            _userData!['firstname'] ??= '';
+            _userData!['lastname'] ??= '';
+            _userData!['phone'] ??= '';
+          }
+        });
       }
     } else {
       print("Auth token is not available.");
@@ -88,25 +83,19 @@ class _CartScreenState extends State<CartScreen> {
       } else {
         // Handle unsuccessful payment
         print('Payment failed');
-        if (!_isDisposed && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Payment failed')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment failed')),
+        );
       }
     } catch (e) {
       print('Error during payment process: $e');
-      if (!_isDisposed && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error during payment process: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during payment process: $e')),
+      );
     }
   }
 
   void _showOrderSummary() {
-    if (_isDisposed || !mounted)
-      return; // Prevent opening the dialog if the widget is disposed
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -158,15 +147,13 @@ class _CartScreenState extends State<CartScreen> {
 
   // Cancel the order and clear the cart
   void _cancelOrder() {
-    if (!_isDisposed && mounted) {
-      setState(() {
-        widget.globalCart.clear();
-        _totalPrice = 0.0;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order canceled')),
-      );
-    }
+    setState(() {
+      widget.globalCart.clear();
+      _totalPrice = 0.0;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Order canceled')),
+    );
   }
 
   void _placeOrder() async {
@@ -283,20 +270,20 @@ class _CartScreenState extends State<CartScreen> {
               'totalPrice': _totalPrice, // Add total price here
             });
 
-            if (!_isDisposed && mounted) {
-              // Show a success message and clear the cart
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Order placed successfully')),
-              );
-
-              setState(() {
-                widget.globalCart.clear();
-                _totalPrice = 0.0;
-              });
-            }
+            print(
+                'Notification sent to delivery persons: $nearbyDeliveryPersons');
           } catch (e) {
-            print('Error while notifying delivery persons: $e');
+            print('Error adding notification: $e');
           }
+
+          // Show a success message and clear the cart
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Order placed successfully')));
+
+          setState(() {
+            widget.globalCart.clear();
+            _totalPrice = 0.0;
+          });
         } else {
           print('Unable to get user location.');
         }
@@ -310,52 +297,63 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _calculateTotalPrice();
     return Scaffold(
       appBar: AppBar(
-        title: Text('Your Cart'),
+        title: Text('Cart'),
+        automaticallyImplyLeading: false,
+        centerTitle: true,
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: widget.globalCart.length,
-              itemBuilder: (context, index) {
-                var medicine = widget.globalCart[index];
-                return ListTile(
-                  title: Text(medicine.name),
-                  subtitle: Text(
-                      '${medicine.brand} - \රු${medicine.price.toStringAsFixed(2)} x ${medicine.quantity}'),
-                  trailing: IconButton(
-                    icon: Icon(Icons.remove_circle),
-                    onPressed: () {
-                      if (!_isDisposed && mounted) {
-                        setState(() {
-                          widget.globalCart.removeAt(index);
-                          _calculateTotalPrice();
-                        });
-                      }
+            child: widget.globalCart.isEmpty
+                ? Center(
+                    child: Text(
+                      'Your cart is empty',
+                      style: TextStyle(fontSize: 24),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: widget.globalCart.length,
+                    itemBuilder: (context, index) {
+                      var item = widget.globalCart[index];
+                      return ListTile(
+                        title: Text(item.name),
+                        subtitle: Text(
+                          '${item.brand}\n\රු${item.price.toStringAsFixed(2)} x ${item.quantity} = \රු${(item.price * item.quantity).toStringAsFixed(2)}',
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.remove_shopping_cart),
+                          onPressed: () {
+                            setState(() {
+                              widget.globalCart.removeAt(index);
+                            });
+                          },
+                        ),
+                      );
                     },
                   ),
-                );
-              },
-            ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                Text(
-                  'Total Price: \රු${_totalPrice.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _showOrderSummary,
-                  child: Text('Place Order'),
-                ),
-              ],
+          if (widget.globalCart.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Total: \රු${_totalPrice.toStringAsFixed(2)}',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.right,
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _showOrderSummary, // Show order summary first
+                    child: Text('Place Order'),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

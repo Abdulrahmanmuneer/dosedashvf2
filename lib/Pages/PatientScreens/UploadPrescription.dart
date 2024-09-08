@@ -19,8 +19,9 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
 
   Future<void> _fetchUserId() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getString('userid');
-    setState(() {});
+    setState(() {
+      _userId = prefs.getString('userid'); // Fetching the user ID from SharedPreferences
+    });
   }
 
   @override
@@ -35,7 +36,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
           ? StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('notifications')
-                  .where('userId', isEqualTo: _userId)
+                  .where('userId', isEqualTo: _userId) // Filtering notifications by user ID
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -56,20 +57,26 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     var notification = snapshot.data!.docs[index];
+
                     return Card(
                       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                       elevation: 4,
                       child: ListTile(
-                        title: Text('Order ID: ${notification.id}'),
+                        title: Text('Notification ID: ${notification.id}'),
                         subtitle: Text('Status: ${notification['orderStatus']}'),
                         onTap: () {
+                          // Pass the _userId and notification details when navigating to OrderDetailsScreen
                           Navigator.push(
-                            context,
+                          context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  OrderDetailsScreen(notification: notification),
+                            builder: (context) => OrderDetailsScreen(
+                               userId: _userId!, // Passing the userId
+                              notificationId: notification.id, // Use notification.id here
+                                notification: notification.data() as Map<String, dynamic>, // Passing the notification object
+                              ),
                             ),
                           );
+
                         },
                       ),
                     );

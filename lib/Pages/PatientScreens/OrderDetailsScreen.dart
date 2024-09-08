@@ -1,25 +1,62 @@
+import 'package:DoseDash/Pages/PatientScreens/OrderTrackingScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class OrderDetailsScreen extends StatelessWidget {
-  final QueryDocumentSnapshot notification; // Adjusted parameter name
+class OrderDetailsScreen extends StatefulWidget {
+  final String userId;
+  final String notificationId; // Pass the document ID as notificationId
+  final Map<String, dynamic> notification;
 
-  OrderDetailsScreen({required this.notification}); // Adjusted parameter name
+  OrderDetailsScreen({
+    required this.userId,
+    required this.notificationId,
+    required this.notification,
+  });
+
+  @override
+  _OrderDetailsScreenState createState() => _OrderDetailsScreenState();
+}
+
+class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
+  bool isDeliveryPersonAssigned = false;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkDeliveryPersonStatus();
+  }
+
+  // Function to check if deliveryPersonIds is null or not
+  Future<void> _checkDeliveryPersonStatus() async {
+    FirebaseFirestore.instance
+        .collection('notifications')
+        .doc(widget.notificationId) // Use document ID directly
+        .snapshots()
+        .listen((documentSnapshot) {
+      if (documentSnapshot.exists) {
+        var data = documentSnapshot.data();
+        if (data != null) {
+          setState(() {
+            isDeliveryPersonAssigned = data['deliveryPersonIds'] != null;
+            isLoading = false;
+          });
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Retrieve and ensure correct type for total price
-    double totalPrice = (notification['totalPrice'] as num).toDouble();
-    List<dynamic> orderItems = List.from(notification['orderItems']);
-    List<String> pharmacyNames = List<String>.from(notification['pharmacy_name']);
-    String patientName = notification['patient_name'] ?? 'Unknown';
-    String orderStatus = notification['orderStatus'] ?? 'Unknown';
-    Timestamp timestamp = notification['timestamp'];
+    double totalPrice = (widget.notification['totalPrice'] as num).toDouble();
+    List<dynamic> orderItems = List.from(widget.notification['orderItems']);
+    List<String> pharmacyNames = List<String>.from(widget.notification['pharmacy_name']);
+    String patientName = widget.notification['patient_name'] ?? 'Unknown';
+    String orderStatus = widget.notification['orderStatus'] ?? 'Unknown';
+    Timestamp timestamp = widget.notification['timestamp'];
 
-    // Format order date and time
     String formattedDate = timestamp.toDate().toLocal().toString();
 
-    // Create a map to get pharmacy names by pharmacy ID
     Map<String, String> pharmacyDetails = {};
     for (var i = 0; i < pharmacyNames.length; i++) {
       pharmacyDetails[orderItems[i]['pharmacyId'] ?? 'Unknown'] = pharmacyNames[i];
@@ -49,7 +86,7 @@ class OrderDetailsScreen extends StatelessWidget {
                     elevation: 4,
                     child: ListTile(
                       title: Text(
-                        'Notification ID: ${notification.id}',
+                        'Notification ID: ${widget.notificationId}', // Display document ID
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -153,25 +190,56 @@ class OrderDetailsScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Track Order Button
-          Padding(
-            padding: const EdgeInsets.all(40.0),
-            child: Center(
-              child: ElevatedButton(
-                onPressed: null, // Disable button
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                ),
-                child: Text(
-                  'Track Order',
-                  style: TextStyle(fontSize: 18),
-                ),
+          // Searching for Delivery Person Section
+          Card(
+            elevation: 4,
+            margin: EdgeInsets.all(16),
+            child: ListTile(
+              title: Text(
+                isDeliveryPersonAssigned
+                    ? 'Delivery person assigned'
+                    : 'Searching for Delivery person...',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
+              trailing: isDeliveryPersonAssigned
+                  ? Icon(Icons.check_circle, color: Colors.green)
+                  : CircularProgressIndicator(),
             ),
           ),
+          // Track Order Button
+          // Track Order Button
+Padding(
+  padding: const EdgeInsets.all(40.0),
+  child: Center(
+    child: ElevatedButton(
+      onPressed: isDeliveryPersonAssigned
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OrderTrackingScreen(
+                    notificationId: widget.notificationId, // Use widget.notificationId directly
+                    deliveryPersonIds: widget.notification['deliveryPersonIds'] ?? '', 
+                    pharmacyAddress: widget.notification['pharmacy_address'] ?? [], 
+                  ),
+                ),
+              );
+            }
+          : null, // Disable button if no delivery person assigned
+      style: ElevatedButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30.0),
+        ),
+        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+      ),
+      child: Text(
+        'Track Order',
+        style: TextStyle(fontSize: 18),
+      ),
+    ),
+  ),
+),
+                
         ],
       ),
     );
