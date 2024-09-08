@@ -57,6 +57,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     var order = snapshot.data!.docs[index];
+                    String orderStatus = order['orderStatus'];
+
                     return Card(
                       margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       child: ListTile(
@@ -66,7 +68,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           children: [
                             Text('Patient Name: ${order['user_name']}'),
                             Text('Phone Number: ${order['phone_number']}'),
-                            Text('Status: ${order['orderStatus']}'),
+                            Text('Status: $orderStatus'),
                           ],
                         ),
                         onTap: () {
@@ -79,10 +81,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           );
                         },
                         trailing: ElevatedButton(
-                          onPressed: () {
-                            _completeOrder(order.id);
-                          },
-                          child: Text('Complete Order'),
+                          onPressed: orderStatus == 'complete'
+                              ? null // Disable button if status is 'complete'
+                              : () {
+                                  _completeOrder(order.id);
+                                },
+                          child: Text(
+                            'Complete Order',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: orderStatus == 'complete'
+                                  ? Colors.grey // Button color when disabled
+                                  : const Color.fromARGB(255, 87, 197, 224),
+                              textStyle: TextStyle(
+                                  color: Color.fromARGB(10, 20, 30, 40))
+                              // Button color when enabled
+                              ),
                         ),
                       ),
                     );
@@ -100,7 +115,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return pharmacyId ?? '';
   }
 
-  // Complete order method
   Future<void> _completeOrder(String orderId) async {
     try {
       // Fetching Pharmacy Location as a geocoordinate
@@ -116,11 +130,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
         String geoPointString = pharmacyDoc['coordinates']; // Firestore String
         List<String> latLng = geoPointString.split(',');
 
-// Parse the latitude and longitude from the string
+        // Parse the latitude and longitude from the string
         double latitude = double.parse(latLng[0]);
         double longitude = double.parse(latLng[1]);
 
-// Create the GeoPoint object
+        // Create the GeoPoint object
         GeoPoint geoPoint = GeoPoint(latitude, longitude);
 
         // Convert GeoPoint to LatLng for Google Maps usage
@@ -134,16 +148,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
         print('Nearby delivery persons: $nearbyDeliveryPersons');
 
-        //Creating a new collection called orderNotifier in fire base
-        //Adding both orderId and list of deliveryPersons ids
-        //Setting orderStatus as readyforpickup
+        // Creating a new document in the orderNotifier collection in Firestore
         await FirebaseFirestore.instance.collection('orderNotifier').add({
           'orderNotifierId': orderId,
           'nearByRiders': nearbyDeliveryPersons,
           'orderStatus': 'readyforpickup',
           'timestamp': FieldValue.serverTimestamp(),
         });
-        print('order is been stored in the order notifier collection');
+        print('Order has been stored in the order notifier collection');
+
+        // Update the order's status to 'complete'
+        await FirebaseFirestore.instance
+            .collection('orders')
+            .doc(orderId)
+            .update({'orderStatus': 'complete'});
+
+        print('Order status updated to complete');
       } else {
         print('Pharmacy not found.');
       }

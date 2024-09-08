@@ -17,12 +17,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String? _userId;
   bool _isLoading = true;
+  bool _isDisposed = false; // To track widget disposal
   Map<String, dynamic>? _userData;
 
   @override
   void initState() {
     super.initState();
     _fetchUserId();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true; // Mark widget as disposed
+    _firstnameController.dispose();
+    _lastnameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchUserId() async {
@@ -39,31 +50,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .collection('users')
           .doc(_userId)
           .get();
-      setState(() {
-        _userData = userDoc.data() as Map<String, dynamic>?;
-        if (_userData != null) {
-          _firstnameController.text = _userData!['firstname'] ?? '';
-          _lastnameController.text = _userData!['lastname'] ?? '';
-          _phoneController.text = _userData!['phone'] ?? '';
-          _addressController.text = _userData!['address'] ?? '';
-        }
-        _isLoading = false;
-      });
+
+      if (!_isDisposed && mounted) {
+        setState(() {
+          _userData = userDoc.data() as Map<String, dynamic>?;
+          if (_userData != null) {
+            _firstnameController.text = _userData!['firstname'] ?? '';
+            _lastnameController.text = _userData!['lastname'] ?? '';
+            _phoneController.text = _userData!['phone'] ?? '';
+            _addressController.text = _userData!['address'] ?? '';
+          }
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _updateUserAddress(String newAddress) async {
     if (_userId != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_userId)
-          .update({
+      await FirebaseFirestore.instance.collection('users').doc(_userId).update({
         'address': newAddress,
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Address updated successfully')),
-      );
+      if (!_isDisposed && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Address updated successfully')),
+        );
+      }
     }
   }
 
@@ -74,7 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (context) => Mapscreen(userRole: 'patient'),
       ),
     );
-    if (selectedLocation != null) {
+    if (selectedLocation != null && !_isDisposed && mounted) {
       setState(() {
         _addressController.text = selectedLocation;
       });
@@ -108,20 +121,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'address': _addressController.text,
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile updated successfully')),
-        );
+        if (!_isDisposed && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Profile updated successfully')),
+          );
 
-        Navigator.pushNamed(context, '/');
+          Navigator.pushNamed(context, '/');
+        }
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please fill all fields and ensure the phone number is 10 digits',
+      if (!_isDisposed && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Please fill all fields and ensure the phone number is 10 digits',
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -169,9 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                   SizedBox(height: 20),
-
-
-
                   GestureDetector(
                     onTap: _openMapScreen,
                     child: TextField(
@@ -180,14 +194,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         border: OutlineInputBorder(),
                       ),
                       controller: _addressController,
-                      enabled: false, // Makes the field not editable directly by the user
+                      enabled:
+                          false, // Makes the field not editable directly by the user
                     ),
                   ),
-
-                  
                   SizedBox(height: 20),
                   TextField(
-                    controller: TextEditingController(text: _userData?['email']),
+                    controller:
+                        TextEditingController(text: _userData?['email']),
                     decoration: InputDecoration(
                       labelText: 'Email',
                       border: OutlineInputBorder(),
@@ -196,14 +210,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   SizedBox(height: 20),
                   TextField(
-                    controller: TextEditingController(text: _userData?['agerange']),
+                    controller:
+                        TextEditingController(text: _userData?['agerange']),
                     decoration: InputDecoration(
                       labelText: 'Age Range',
                       border: OutlineInputBorder(),
                     ),
                     enabled: false,
                   ),
-                  
                   SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _updateUserData,
