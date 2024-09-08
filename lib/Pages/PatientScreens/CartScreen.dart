@@ -73,13 +73,25 @@ class _CartScreenState extends State<CartScreen> {
       // Convert total price to cents (Stripe expects amounts in cents)
       int amount = (_totalPrice * 100).toInt();
 
-      // Initialize the payment sheet
-      await StripeService.initPaymentSheet(context, amount.toString(), 'LKR');
+      // Initialize and present the payment sheet
+      bool paymentSuccessful = await StripeService.initPaymentSheet(
+          context, amount.toString(), 'LKR');
 
-      // On successful payment, place the order
-      _placeOrder();
+      if (paymentSuccessful) {
+        // Payment was successful, place the order
+        _placeOrder();
+      } else {
+        // Handle unsuccessful payment
+        print('Payment failed');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment failed')),
+        );
+      }
     } catch (e) {
-      print('Payment failed: $e');
+      print('Error during payment process: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during payment process: $e')),
+      );
     }
   }
 
