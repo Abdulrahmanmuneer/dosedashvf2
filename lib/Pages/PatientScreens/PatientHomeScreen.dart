@@ -61,8 +61,6 @@ class _PatientHomeScreenState extends State<Patienthomescreen>
     }
   }
 
-
-
   Future<void> _fetchMedicines() async {
     LocationService locationService = LocationService();
     LatLng? userLocation = await locationService.getUserLocation();
@@ -150,6 +148,14 @@ class _PatientHomeScreenState extends State<Patienthomescreen>
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'These are off the shelf medicines which don\'t require a prescription',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: TextField(
