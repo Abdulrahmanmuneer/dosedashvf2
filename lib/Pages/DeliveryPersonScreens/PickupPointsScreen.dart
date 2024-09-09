@@ -187,20 +187,9 @@ class PickupPointsScreen extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0), // Increase button size
                   textStyle: TextStyle(fontSize: 18), // Increase text size
                 ),
-                child: Text('Accept', style: TextStyle(color: Colors.white)),
+                child: Text('view routes', style: TextStyle(color: Colors.white)),
               ),
-              ElevatedButton(
-                onPressed: () => _handleDecline(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red, // Red color
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0), // Increase button size
-                  textStyle: TextStyle(fontSize: 18), // Increase text size
-                ),
-                child: Text('Decline', style: TextStyle(color: Colors.white)),
-              ),
+              
             ],
           ),
           SizedBox(height: 16), // Add some space below the buttons
